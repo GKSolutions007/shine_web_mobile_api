@@ -11,5 +11,11 @@ namespace ShineWebMobileAPI.Controllers
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     public class VanLoadingSlipController : ApiController
     {
+        [HttpGet]
+        [Route("api/dailyactivity/getdata")]
+        public IHttpActionResult GetData(string CompanyCode, string Mode, string ID, string SalesmanID = "")
+        {
+            return Ok();
+        }
     }
 }
