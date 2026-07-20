@@ -211,6 +211,7 @@
     <Compile Include="Models\CustomerVendorModel.cs" />
     <Compile Include="Models\Sales.cs" />
     <Compile Include="Models\Users.cs" />
+    <Compile Include="Models\VLSModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
