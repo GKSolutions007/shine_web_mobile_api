@@ -23,6 +23,7 @@ namespace ShineWebMobileAPI.BuisnessLayer
     public class clsBusinessLayer
     {
         clsDAL ObjDL = new clsDAL();
+        public int strDigits { get; set; }
         public DataTable BL_ExecuteParamSP(string CompanyCode, string strProcedure, params object[] objParams)
         {
             return ObjDL.dl_ExecuteParamSP(CompanyCode,strProcedure, objParams);
@@ -738,6 +739,237 @@ namespace ShineWebMobileAPI.BuisnessLayer
                 }
             }
             return BL_dValidation(dTaxAmt);
+        }
+        public decimal BL_RoundOffTwoDecimal(object objDecimalValue)
+        {
+            decimal dstrValue;
+            string strdecimalValue = Convert.ToString(objDecimalValue);
+            //DataTable dtDecimal = BL_ExecuteSqlQuery("select AppValue from tblAppConfig where AppName in ('DecimalValues')");
+            //int strDigits =  Convert.ToInt32(dtDecimal.Rows[0][0].ToString());// "0:0.00";
+            if (decimal.TryParse(strdecimalValue, out dstrValue))
+            {
+                //string str = string.Format("{" + strDigits + "}", dstrValue);
+                dstrValue = Math.Round(Convert.ToDecimal(strdecimalValue), strDigits);
+            }
+            else
+            {
+                string str = string.Format("{" + "0:0.00" + "}", 0);
+                dstrValue = Convert.ToDecimal(str);
+            }
+            return dstrValue;
+        }
+        public string BL_AmountInWords(decimal inputNumber)
+        {
+            string strAmt = "";
+            string strAmt_Paisa = "";
+            strAmt = inputNumber.ToString();
+            int aaa = inputNumber.ToString().IndexOf(".", 0);
+            strAmt_Paisa = inputNumber.ToString().Substring(aaa + 1);
+            strAmt = inputNumber.ToString().Substring(0, inputNumber.ToString().IndexOf(".", 0));
+            if (Convert.ToDecimal(strAmt_Paisa.Trim()) == 0)
+            {
+                return "Rupees " + NumbersToWords(long.Parse(strAmt)) + " Only";
+            }
+            else
+            {
+                return "Rupees " + NumbersToWords(long.Parse(strAmt)) + " and Paisa " + NumbersToWords(long.Parse(strAmt_Paisa)) + " Only";
+            }
+        }
+        private string NumbersToWords(long inputNumber)
+        {
+            if (inputNumber.ToString().Length < 11)
+            {
+                long inputNo = inputNumber;
+                if (inputNo == 0)
+                    return "Zero";
+                long[] numbers = new long[4];
+                long first = 0;
+                long u, h, t;
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                if (inputNo < 0)
+                {
+                    sb.Append("Minus ");
+                    inputNo = -inputNo;
+                }
+                string[] words0 = { "", "One ", "Two ", "Three ", "Four ", "Five ", "Six ", "Seven ", "Eight ", "Nine " };
+                string[] words1 = { "Ten ", "Eleven ", "Twelve ", "Thirteen ", "Fourteen ", "Fifteen ", "Sixteen ", "Seventeen ", "Eighteen ", "Nineteen " };
+                string[] words2 = { "Twenty ", "Thirty ", "Forty ", "Fifty ", "Sixty ", "Seventy ", "Eighty ", "Ninety " };
+                string[] words3 = { "Thousand ", "Lakh ", "Crore " };
+
+                numbers[0] = inputNo % 1000; // units
+                numbers[1] = inputNo / 1000;
+                numbers[2] = inputNo / 100000;
+                numbers[1] = numbers[1] - 100 * numbers[2]; // thousands
+                numbers[3] = inputNo / 10000000; // crores
+                numbers[2] = numbers[2] - 100 * numbers[3]; // lakhs
+
+                for (int i = 3; i > 0; i--)
+                {
+                    if (numbers[i] != 0)
+                    {
+                        first = i;
+                        break;
+                    }
+                }
+                for (long i = first; i >= 0; i--)
+                {
+                    if (numbers[i] == 0) continue;
+                    u = numbers[i] % 10; // ones
+                    t = numbers[i] / 10;
+                    h = numbers[i] / 100; // hundreds
+                    t = t - 10 * h; // tens
+                    if (h > 0)
+                        sb.Append(words0[h] + "Hundred ");
+                    if (u > 0 || t > 0)
+                    {
+                        //if (h > 0 || i == 0) 
+                        //    sb.Append("and ");
+                        if (t == 0)
+                            sb.Append(words0[u]);
+                        else if (t == 1)
+                            sb.Append(words1[u]);
+                        else
+                            sb.Append(words2[t - 2] + words0[u]);
+                    }
+                    if (i != 0)
+                        sb.Append(words3[i - 1]);
+                }
+                return sb.ToString().TrimEnd();
+            }
+            return "Nothing";
+        }
+        public DataTable BL_GetTransName(string Companycode, params object[] obj)
+        {
+            return this.BL_ExecuteParamSP(Companycode,"uspGetTransName", obj);
+        }
+        public DataTable BL_GetPrintPreviewPage(string Companycode, int nConfigValue)
+        {
+            return BL_ExecuteParamSP(Companycode, "uspGetPrintConfig", nConfigValue);
+        }
+        public DataTable BL_StringSplitCommaHyphen(string Companycode, string str)
+        {
+            string[] strComma = str.Split(',').Select(sValue => sValue.Trim()).ToArray();
+            DataTable dt = new DataTable();
+            dt.Columns.Add("SerialNo", typeof(string));
+            int nCount = 0;
+            for (int i = 0; i < strComma.Length; i++)
+            {
+                if (strComma[i].Contains('-'))
+                {
+                    int nFrom = 0, nTo = 0;
+                    string Prefix = "";
+                    string[] strHypan = strComma[i].Split('-').Select(sValue => sValue.Trim()).ToArray();
+                    bool IsNumOnly = this.IsNumvericValue(Companycode,strHypan[0].Trim());
+                    if (IsNumOnly)
+                    {
+                        nFrom = this.BL_nValidation(strHypan[0].Trim());
+                        nTo = this.BL_nValidation(strHypan[1].Trim());
+                    }
+                    else
+                    {
+                        string[] strnumFrom = SeparateStringandNumber(strHypan[0].Trim());
+                        Prefix = strnumFrom[0];
+                        nFrom = this.BL_nValidation(strnumFrom[1].Trim());
+                        string[] strnumTo = SeparateStringandNumber(strHypan[1].Trim());
+                        nTo = this.BL_nValidation(strnumTo[1].Trim());
+                    }
+
+                    if (nFrom != 0 && nTo != 0)
+                    {
+                        if (nFrom < nTo)
+                        {
+                            for (int j = nFrom - 1; j <= nTo - 1; j++)
+                            {
+                                dt.Rows.Add();
+                                dt.Rows[nCount][0] = IsNumOnly ? Convert.ToString(j + 1) : Prefix + (j + 1);
+                                nCount++;
+                            }
+                        }
+                        else
+                        {
+                            nCount = 0;
+                            dt.Rows.Clear();
+                            dt.Rows.Add();
+                            dt.Rows[nCount][0] = "Range Should be [" + nTo + "-" + nFrom + "] Instead of [" + nFrom + "-" + nTo + "]";
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        nCount = 0;
+                        dt.Rows.Clear();
+                        dt.Rows.Add();
+                        dt.Rows[nCount][0] = "Range Should be Greater than Zero";
+                        break;
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(strComma[i].Trim()))
+                    {
+                        bool IsNumOnly = this.IsNumvericValue(Companycode,strComma[0].Trim());
+                        if (IsNumOnly)
+                        {
+                            if (this.BL_nValidation(strComma[i]) != 0)
+                            {
+                                dt.Rows.Add();
+                                dt.Rows[nCount][0] = strComma[i].Trim();
+                                nCount++;
+                            }
+                            else
+                            {
+                                nCount = 0;
+                                dt.Rows.Clear();
+                                dt.Rows.Add();
+                                dt.Rows[nCount][0] = "Range Should be Greater than Zero";
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            dt.Rows.Add();
+                            dt.Rows[nCount][0] = strComma[i].Trim();
+                            nCount++;
+                        }
+
+                    }
+                }
+            }
+            return dt;
+        }
+        public bool IsNumvericValue(string CC,string Value)
+        {
+            bool IsNumeric = false;
+            DataTable dt = this.BL_ExecuteSqlQuery(CC,"SELECT ISNUMERIC('" + Value + "')");
+            if (dt.Rows.Count > 0)
+            {
+                IsNumeric = dt.Rows[0][0].ToString() == "1";
+            }
+            return IsNumeric;
+        }
+        public string[] SeparateStringandNumber(string Value)
+        {
+            string[] sapbyslash = Value.Split('/');
+            if (sapbyslash.Length > 1)
+            {
+                Regex re = new Regex(@"([a-zA-Z]+)(\d+)");
+                Match result = re.Match(Value);
+                string Prefix = string.Empty;
+                for (int i = 0; i < sapbyslash.Length - 1; i++)
+                {
+                    Prefix += sapbyslash[i] + "/";
+                }
+                string[] strandnum = { Prefix, sapbyslash[sapbyslash.Length - 1] };
+                return strandnum;
+            }
+            else
+            {
+                Regex re = new Regex(@"([a-zA-Z]+)(\d+)");
+                Match result = re.Match(Value);
+                string[] strandnum = { result.Groups[1].Value, result.Groups[2].Value };
+                return strandnum;
+            }
+
         }
     }
 }
