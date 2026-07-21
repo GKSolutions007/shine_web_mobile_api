@@ -5,7 +5,7 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShineWebMobileAPI", "ShineWebMobileAPI.csproj", "{D823B582-43FD-4715-9DD7-76CDD049A2A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shinewebprint", "..\ShineWebMobile\Shinewebprint\Shinewebprint.csproj", "{1D6B0E15-8EDE-4A8F-B339-1FCBEAE768A7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shinewebprint", "Shinewebprint\Shinewebprint.csproj", "{A539B9CA-065C-4AA4-B783-BDB1D7AAD878}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{D823B582-43FD-4715-9DD7-76CDD049A2A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D823B582-43FD-4715-9DD7-76CDD049A2A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D823B582-43FD-4715-9DD7-76CDD049A2A0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1D6B0E15-8EDE-4A8F-B339-1FCBEAE768A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1D6B0E15-8EDE-4A8F-B339-1FCBEAE768A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1D6B0E15-8EDE-4A8F-B339-1FCBEAE768A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1D6B0E15-8EDE-4A8F-B339-1FCBEAE768A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A539B9CA-065C-4AA4-B783-BDB1D7AAD878}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A539B9CA-065C-4AA4-B783-BDB1D7AAD878}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A539B9CA-065C-4AA4-B783-BDB1D7AAD878}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A539B9CA-065C-4AA4-B783-BDB1D7AAD878}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -424,8 +424,8 @@
     <Content Include="Scripts\jquery-3.7.0.min.map" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ShineWebMobile\Shinewebprint\Shinewebprint.csproj">
-      <Project>{1d6b0e15-8ede-4a8f-b339-1fcbeae768a7}</Project>
+    <ProjectReference Include="Shinewebprint\Shinewebprint.csproj">
+      <Project>{a539b9ca-065c-4aa4-b783-bdb1d7aad878}</Project>
       <Name>Shinewebprint</Name>
     </ProjectReference>
   </ItemGroup>
