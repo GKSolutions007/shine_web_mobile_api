@@ -24,7 +24,7 @@ namespace ShineWebMobileAPI.Controllers
         public IDictionary<string, string> _mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 
         [HttpGet]
-        [Route("api/invoice/PDFGenerate")]
+        [Route("api/print/PDFGenerate")]
         public IHttpActionResult PDFGenerate(string Companycode,string DocID, string TransID = "", string ConfigID = "", string PrinterID = "",
             string TransName = "", string Copies = "1")
         {
@@ -61,13 +61,13 @@ namespace ShineWebMobileAPI.Controllers
             }
             catch (Exception ex)
             {
-                bl.BL_WriteErrorMsginLog(Companycode,"PDFGenerate", "SaveFileinLocation", ex.Message);
+                bl.BL_WriteErrorMsginLog(Companycode, "Printing", "PDFGenerate", ex.Message);
             }
             return null;
         }
 
         [HttpGet]
-        [Route("api/invoice/MailGenerate")]
+        [Route("api/print/MailGenerate")]
         public IHttpActionResult MailGenerate(string Companycode, string DocID, string TransID = "", string ConfigID = "", string Copies = "1")
         {
             List<SaveMessage> list = new List<SaveMessage>();
@@ -109,7 +109,7 @@ namespace ShineWebMobileAPI.Controllers
                     MsgID = "1",
                     Message = ex.Message
                 });
-                bl.BL_WriteErrorMsginLog(Companycode, "MailGenerate", "MailGenerate", ex.Message);
+                bl.BL_WriteErrorMsginLog(Companycode, "Printing", "MailGenerate", ex.Message);
             }
             return Ok(list);
         }
