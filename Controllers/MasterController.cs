@@ -22,9 +22,9 @@ namespace ShineWebMobileAPI.Controllers
         clsBusinessLayer bl = new clsBusinessLayer();
         [HttpGet]
         [Route("api/customer/customerlist")]
-        public IHttpActionResult Getcustomerlist(string CompanyCode)
+        public IHttpActionResult Getcustomerlist(string CompanyCode,string UserID)
         {
-            DataTable DDT = bl.BL_ExecuteParamSP(CompanyCode, "uspManageCustomerMaster", 4, 0);
+            DataTable DDT = bl.BL_ExecuteParamSP(CompanyCode, "uspManageCustomerMaster", 12, UserID);
             DataTable dtCustomerImg = bl.BL_ExecuteParamSP(CompanyCode, "uspManageCustomerMaster", 11, 0);
             var listcustomerimages = new List<object>();
             for (int k = 0; k < dtCustomerImg.Rows.Count; k++)

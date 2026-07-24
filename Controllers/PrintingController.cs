@@ -1,4 +1,5 @@
-﻿using ShineWebMobileAPI.BuisnessLayer;
+﻿using Newtonsoft.Json;
+using ShineWebMobileAPI.BuisnessLayer;
 using ShineWebMobileAPI.Models;
 using ShineWebMobileAPI.Printing;
 using System;
@@ -14,6 +15,7 @@ using System.Text;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using clsEncryptDecrypt = ShineWebMobileAPI.BuisnessLayer.clsEncryptDecrypt;
 
 namespace ShineWebMobileAPI.Controllers
 {
@@ -171,15 +173,15 @@ namespace ShineWebMobileAPI.Controllers
         }
 
         [HttpGet]
-        [Route("api/invoice/WhatsappGenerate")]
+        [Route("api/print/WhatsappGenerate")]
         public IHttpActionResult WhatsappGenerate(string Companycode, string DocID, string TransID = "", string ConfigID = "",
-            string Copies = "1", string APIURL = "")
+            string Copies = "1", string APIURL = "", string UserID = "")
         {
             List<SaveMessage> list = new List<SaveMessage>();
             try
             {
 
-                DataTable dtWhatsappData = bl.BL_ExecuteParamSP("uspWhatsappmessagecontent", TransID, DocID, APIURL);
+                DataTable dtWhatsappData = bl.BL_ExecuteParamSP(Companycode,"uspWhatsappmessagecontent", TransID, DocID, APIURL);
                 if (dtWhatsappData.Rows.Count > 0)
                 {
                     string PartyMobile = dtWhatsappData.Rows[0][0].ToString();
@@ -192,7 +194,10 @@ namespace ShineWebMobileAPI.Controllers
                         string encDocID = BuisnessLayer.clsEncryptDecrypt.Encrypt(DocValue);
                         string encTransID = BuisnessLayer.clsEncryptDecrypt.Encrypt(TransID);
                         string encConfigID = BuisnessLayer.clsEncryptDecrypt.Encrypt(ConfigID);
-                        WAMessage += "Document Link : \n" + APIURL + "invoice/viewmydocument?DocID=" + HttpUtility.UrlEncode(encDocID) + "&TransID=" + HttpUtility.UrlEncode(encTransID) + "&ConfigID=" + HttpUtility.UrlEncode(encConfigID);
+                        string encUserID = BuisnessLayer.clsEncryptDecrypt.Encrypt(UserID);
+                        WAMessage += "Document Link : \n" + APIURL + "print/viewmydocument?Companycode="+ Companycode + "&DocID=" + HttpUtility.UrlEncode(encDocID) +
+                            "&TransID=" + HttpUtility.UrlEncode(encTransID) + "&ConfigID=" + HttpUtility.UrlEncode(encConfigID)
+                            + "&vlsu=" + HttpUtility.UrlEncode(encUserID);
                         WAMessage += "\n\nThank You!🙏";
                         //sb.AppendFormat(WAMessage, APIURL, encDocID, encTransID, encConfigID);
                         list.Add(new SaveMessage()
@@ -310,8 +315,11 @@ namespace ShineWebMobileAPI.Controllers
                 DataTable dt = new DataTable();
                 string FPath = AppDomain.CurrentDomain.BaseDirectory + "PDF\\" + FName;
                 string fileName = FName;
+                //bl.BL_WriteErrorMsginLog(Companycode, "Printing", "print/downloadprint", "FILE PATH : " + FPath, "Info");
                 if (!File.Exists(FPath))
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
+
+                //bl.BL_WriteErrorMsginLog(Companycode, "Printing", "print/downloadprint", "FILE PATH exists ", "Info");
 
                 var result = new HttpResponseMessage(HttpStatusCode.OK);
                 var stream = new FileStream(FPath, FileMode.Open, FileAccess.Read);
@@ -328,6 +336,104 @@ namespace ShineWebMobileAPI.Controllers
                 bl.BL_WriteErrorMsginLog(Companycode,"Printing", "print/downloadprint", ex.Message);
             }
             return new HttpResponseMessage(HttpStatusCode.OK);
+        }
+        [HttpGet]
+        [Route("api/print/getprofile")]
+        public IHttpActionResult GetProfilebyid(string Companycode,string TransID)
+        {
+            try
+            {
+                DataTable DDT = bl.BL_ExecuteParamSP(Companycode,"uspManagePrintProfileconfig", 3, TransID);
+                string val = JsonConvert.SerializeObject(DDT);
+                return Ok(val);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(Companycode,"Print", "print/getprofile", ex.Message);
+            }
+            return Ok();
+        }
+        [HttpGet]
+        [Route("api/print/viewmydocument")]
+        public HttpResponseMessage ViewMyDocGenerate(string Companycode,string DocID, string TransID = "", 
+            string ConfigID = "",string vlsu ="")
+        {
+            List<SaveMessage> list = new List<SaveMessage>();
+            try
+            {
+                string pdfFilePath = AppDomain.CurrentDomain.BaseDirectory + "PDF\\";// System.Configuration.ConfigurationManager.AppSettings["SupportFilePath"] + "PDF\\";
+                string FileLocationwithname = "";
+                string UserID = "0", UserUPI = "";
+                if (!string.IsNullOrEmpty(pdfFilePath))
+                {
+                    DocID = clsEncryptDecrypt.Decrypt(DocID);
+                    TransID = clsEncryptDecrypt.Decrypt(TransID);
+                    ConfigID = clsEncryptDecrypt.Decrypt(ConfigID);
+                    if (!string.IsNullOrEmpty(vlsu))
+                    {
+                        UserID = clsEncryptDecrypt.Decrypt(vlsu);
+                    }
+                    int Ident = 0;
+                    DataTable dtID = bl.BL_ExecuteParamSP(Companycode,"uspGetTransIdentforPrint", TransID, DocID);
+                    if (dtID.Rows.Count > 0)
+                    {
+                        Ident = bl.BL_nValidation(dtID.Rows[0][0]);
+                    }
+                    //DataTable dtTName = bl.BL_ExecuteSqlQuery("select TransName from tblTransName where Id = " + TransID);
+                    if (Ident > 0)
+                    {
+                        PrintBase PB = new PrintBase { GKS_BL = bl };
+                        if (Convert.ToInt32(DocID) > 0)
+                        {
+                            if (!string.IsNullOrEmpty(ConfigID.ToString()))
+                            {
+                                if (!string.IsNullOrEmpty(vlsu))
+                                {
+                                    DataTable dtUser = bl.BL_ExecuteSqlQuery(Companycode, "select * from tblUsers where ID = " + UserID);
+                                    if(dtUser.Rows.Count > 0)
+                                    {
+                                        UserUPI = dtUser.Rows[0]["UPIID"].ToString();
+                                    }
+                                }
+                                DataTable dtDecimal = bl.BL_ExecuteSqlQuery(Companycode,"select AppValue from tblAppConfig where AppName in ('DecimalValues')");
+                                int strDigits = Convert.ToInt32(dtDecimal.Rows[0][0].ToString());
+                                string CT = DateTime.Now.ToString("yyyyMMddHHmmssffff");
+                                bl.strDigits = strDigits;
+                                PB.CurrentCompanycode = Companycode;
+                                PB.UserUPIID = UserUPI;
+                                PB.GroupPDFPB(Companycode, Convert.ToInt32(TransID), Convert.ToInt32(Ident), Convert.ToInt32(ConfigID), true, 1, CT);
+                                FileLocationwithname = PB.GroupPDFoutputPath;
+                            }
+                        }
+                    }
+                    else
+                    {
+
+                    }
+                }
+                string pathwithFileName = FileLocationwithname;
+                string exts = System.IO.Path.GetExtension(pathwithFileName);
+                string fileName = System.IO.Path.GetFileName(pathwithFileName);
+
+                string FPath = AppDomain.CurrentDomain.BaseDirectory + "PDF\\" + fileName;
+                if (!File.Exists(FPath))
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+
+                var result = new HttpResponseMessage(HttpStatusCode.OK);
+                var stream = new FileStream(FPath, FileMode.Open, FileAccess.Read);
+                result.Content = new StreamContent(stream);
+                result.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+                result.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("inline")
+                {
+                    FileName = fileName
+                };
+                return result;
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(Companycode, "ViewMyDocGenerate", "ViewMyDocGenerate", ex.Message);
+            }
+            return null;
         }
     }
 }

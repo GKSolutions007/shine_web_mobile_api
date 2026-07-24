@@ -33,6 +33,21 @@ namespace ShineWebMobileAPI.Controllers
             return Ok();
         }
         [HttpGet]
+        [Route("api/vls/customers")]
+        public IHttpActionResult GetcustomersData(string CompanyCode, string ID)
+        {
+            try
+            {
+                DataSet dt = bl.BL_ExecuteParamSPDataset(CompanyCode, "uspgetVLSData", 3, ID);
+                return Ok(dt);
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return Ok();
+        }
+        [HttpGet]
         [Route("api/vls/documentdata")]
         public IHttpActionResult GetData(string CompanyCode, string SalesmanID, string DocNo)
         {
@@ -41,7 +56,7 @@ namespace ShineWebMobileAPI.Controllers
                 var Responsedata = new List<object>();
                 DataSet dt = bl.BL_ExecuteParamSPDataset(CompanyCode, "uspgetVLSData", 2, SalesmanID, DocNo);
                 DataTable dtHeader = dt.Tables[0];
-                if (dtHeader.Rows.Count > 0)
+                if (dtHeader.Rows.Count > -10)
                 {
                     if (dtHeader.Columns.Count == 3)
                     {
@@ -76,6 +91,12 @@ namespace ShineWebMobileAPI.Controllers
                                 MRP = dtProduct.Rows[i]["MRP"],
                                 AdjustQty = dtProduct.Rows[i]["AdjustQty"],
                                 AvlVLS = dtProduct.Rows[i]["AvlVLS"],
+
+                                UOMCR = dtProduct.Rows[i]["UOMCF"],
+                                BaseUOMPrice = dtProduct.Rows[i]["BaseUomPrice"],
+                                TaxPern = dtProduct.Rows[i]["TaxValue"],
+                                TaxID = dtProduct.Rows[i]["TaxID"],
+                                UOMID = dtProduct.Rows[i]["UOMID"],
                                 Imagedata = imgdata
                             });
 
@@ -115,11 +136,25 @@ namespace ShineWebMobileAPI.Controllers
                 if (vlsdata != null)
                 {
                     DataTable dtItemDetails = new DataTable();
-
+                    DataColumn column = new DataColumn("Index");
+                    column.DataType = System.Type.GetType("System.Int32");
+                    column.AutoIncrement = true;
+                    column.AutoIncrementSeed = 1;
+                    column.AutoIncrementStep = 1;
+                    dtItemDetails.Columns.Add(column);
                     dtItemDetails.Columns.Add("IdentID", typeof(int));
                     dtItemDetails.Columns.Add("ProdID", typeof(int));
                     dtItemDetails.Columns.Add("AvailableQty", typeof(decimal));
                     dtItemDetails.Columns.Add("AdjustQty", typeof(decimal));
+                    dtItemDetails.Columns.Add("UOMPrice", typeof(decimal));
+                    dtItemDetails.Columns.Add("MRP", typeof(decimal));
+
+                    dtItemDetails.Columns.Add("UOMCR", typeof(decimal));
+                    dtItemDetails.Columns.Add("TaxPern", typeof(decimal));
+                    dtItemDetails.Columns.Add("TaxID", typeof(decimal));
+                    dtItemDetails.Columns.Add("UOMID", typeof(decimal));
+                    dtItemDetails.Columns.Add("BaseUOMPrice", typeof(decimal));
+                    
                     foreach (VLSSelectedProducts item in vlsdata.ItemData)
                     {
                         DataRow dr = dtItemDetails.NewRow();
@@ -128,12 +163,20 @@ namespace ShineWebMobileAPI.Controllers
                         dr["ProdID"] = item.ProdID;
                         dr["AvailableQty"] = item.AvailableVLS;
                         dr["AdjustQty"] = item.AdjustQty;
+                        dr["UOMPrice"] = item.UOMPrice;
+                        dr["MRP"] = item.MRP;
 
+                        dr["UOMCR"] = item.UOMCR;
+                        dr["TaxPern"] = item.TaxPern;
+                        dr["TaxID"] = item.TaxID;
+                        dr["UOMID"] = item.UOMID;
+                        dr["BaseUOMPrice"] = item.BaseUOMPrice;
                         dtItemDetails.Rows.Add(dr);
                     }
                     bl.bl_Transaction(vlsdata.CompanyCode, 1);
                     DataTable DDT = bl.bl_ManageTrans(vlsdata.CompanyCode, "uspSaveMobileVLSData", vlsdata.ID,
-                            vlsdata.Status, vlsdata.CustomerID, vlsdata.SalesmanID, vlsdata.UserID, dtItemDetails);
+                            vlsdata.Status, vlsdata.CustomerID, vlsdata.SalesmanID, vlsdata.UserID, dtItemDetails,
+                            vlsdata.BranchID);
                     if (DDT.Columns.Count > 5)
                     {
                         #region GST Posting
@@ -218,7 +261,7 @@ namespace ShineWebMobileAPI.Controllers
                         //Success message
                         list.Add(new SaveMessage()
                         {
-                            ID = 0.ToString(),
+                            ID = nBillScopeID.ToString(),
                             MsgID = "0",
                             Message = "Saved Successfully"
                         });

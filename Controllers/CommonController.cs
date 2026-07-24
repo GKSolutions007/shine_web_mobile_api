@@ -48,5 +48,20 @@ namespace ShineWebMobileAPI.Controllers
             DDT = bl.BL_ExecuteParamSP(CompanyCode, "uspManageColorSettings", 1, ThemeID);
             return Ok(DDT);
         }
+        [HttpGet]
+        [Route("api/BranchMapping/getByRole")]
+        public IHttpActionResult GetBranchesByRole(string CompanyCode, int RoleID)
+        {
+            try
+            {
+                DataTable DDT = bl.BL_ExecuteParamSP(CompanyCode,"uspGetBranchByRoles", RoleID);
+                return Ok(DDT);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(CompanyCode,"Common", "BranchMapping/getByRole", ex.Message);
+            }
+            return Ok();
+        }
     }
 }

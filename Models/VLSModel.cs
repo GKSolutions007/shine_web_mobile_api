@@ -14,6 +14,7 @@ namespace ShineWebMobileAPI.Models
         public int SalesmanID { get; set; }
 
         public int CustomerID { get; set; }
+        public int BranchID { get; set; }
 
         public int UserID { get; set; }
         public int Status { get; set; }
@@ -32,5 +33,13 @@ namespace ShineWebMobileAPI.Models
         public decimal AvailableVLS { get; set; }
 
         public decimal AdjustQty { get; set; }
+        public decimal UOMPrice { get; set; }
+        public decimal OrgPrice { get; set; }
+
+        public decimal UOMCR { get; set; }
+        public decimal TaxPern { get; set; }
+        public decimal TaxID { get; set; }
+        public decimal UOMID { get; set; }
+        public decimal BaseUOMPrice { get; set; }
     }
 }
