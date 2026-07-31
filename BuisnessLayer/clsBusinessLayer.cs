@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.Processing;
 using Newtonsoft.Json;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
+using System.Configuration;
 
 namespace ShineWebMobileAPI.BuisnessLayer
 {
@@ -93,7 +94,7 @@ namespace ShineWebMobileAPI.BuisnessLayer
             }
             return dstrValue;
         }
-        public bool SendEmail(string Subject, string Body, string ToMailID)
+        public bool SendEmail_old(string Subject, string Body, string ToMailID)
         {
             bool MailSend = false;
             try
@@ -117,6 +118,60 @@ namespace ShineWebMobileAPI.BuisnessLayer
                     //message.From = new MailAddress("gks.helpdesk@gmail.com");//gks.helpdesk@gmail.com
                     message.From = new MailAddress(EMail);//gks.helpdesk@gmail.com//"vipassana.pveasllp@gmail.com"
                     message.To.Add(new MailAddress(ToMailID));
+                    message.Subject = Subject;
+                    message.IsBodyHtml = true; //to make message body as html  
+                    message.Body = Body;
+                    smtp.Port = 587;
+                    smtp.Host = HostName;// "smtp.gmail.com"; //for gmail host  
+                    smtp.EnableSsl = true;
+                    smtp.UseDefaultCredentials = false;
+                    //smtp.Credentials = new NetworkCredential("gks.helpdesk@gmail.com", "mkolocmylhzuuvdk");
+                    //smtp.Credentials = new NetworkCredential("vipassana.pveasllp@gmail.com", "eyilfwmebqgydnjg");//pveasllp@2021
+                    smtp.Credentials = new NetworkCredential(EMail, Pwd);
+                    smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+                    smtp.Send(message);
+                    MailSend = true;
+                }
+                else
+                {
+                    MailSend = false;
+                    //BL_WriteErrorMsginLog("BL", "Mail Send", "E-Mail config details are empty in App Config. You should give the details there.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MailSend = false;
+                //BL_WriteErrorMsginLog("BL", "Mail Send - Exception", ex.Message);
+                throw ex;
+            }
+            finally
+            {
+
+            }
+            return MailSend;
+        }
+
+        public bool SendEmail(string Subject, string Body, string ToMailID, string CCMail = null, string UserMail = null)
+        {
+            bool MailSend = false;
+            try
+            {
+                string HostName = "", EMail = "", Pwd = "";               
+                HostName = ConfigurationManager.AppSettings["smtphost"].ToString();// "smtp.gmail.com";
+                EMail = ConfigurationManager.AppSettings["email"].ToString();// "shineasst@gmail.com";
+                Pwd = clsEncryptDecrypt.Decrypt(ConfigurationManager.AppSettings["passkey"].ToString());// "mmjs bxlv sqgp pivo";
+                if (!string.IsNullOrEmpty(HostName) && !string.IsNullOrEmpty(EMail) && !string.IsNullOrEmpty(Pwd))
+                {
+                    MailMessage message = new MailMessage();
+                    SmtpClient smtp = new SmtpClient();
+                    //message.From = new MailAddress("gks.helpdesk@gmail.com");//gks.helpdesk@gmail.com
+                    message.From = new MailAddress(EMail);//gks.helpdesk@gmail.com//"vipassana.pveasllp@gmail.com"
+                    message.To.Add(new MailAddress(ToMailID));
+                    if (!string.IsNullOrEmpty(CCMail))
+                        message.CC.Add(new MailAddress(CCMail));
+                    if (!string.IsNullOrEmpty(UserMail))
+                        message.CC.Add(new MailAddress(UserMail));
                     message.Subject = Subject;
                     message.IsBodyHtml = true; //to make message body as html  
                     message.Body = Body;

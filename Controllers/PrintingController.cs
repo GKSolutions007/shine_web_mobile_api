@@ -235,17 +235,23 @@ namespace ShineWebMobileAPI.Controllers
         [HttpGet]
         [Route("api/transactionprint/generateprint")]
         public IHttpActionResult TransprintPDFGenerate(string Companycode, int TransID = 0, int ConfigID = 0, string DocValue = "",
-            string Copies = "1", string Branch = "0", string FromDate = null, string ToDate = null)
+            string Copies = "1", string UserID = "")
         {
             try
             {
                 DataView dtView = new DataView(bl.BL_StringSplitCommaHyphen(Companycode, DocValue.Trim()));
                 DataTable dtDocIDs = dtView.ToTable(true, "SerialNo");
                 int nTransrange = 0;
+                string UserUPI = "";
                 if (dtDocIDs.Rows.Count > 0)
                 {
                     if (!Convert.ToString(dtDocIDs.Rows[0][0]).Contains("Range Should be"))
                     {
+                        DataTable dtUser = bl.BL_ExecuteSqlQuery(Companycode, "select * from tblUsers where ID = " + UserID);
+                        if (dtUser.Rows.Count > 0)
+                        {
+                            UserUPI = dtUser.Rows[0]["UPIID"].ToString();
+                        }
                         Stopwatch STPWT = new Stopwatch();
                         STPWT.Start();
                         string Outputfile = "";
@@ -256,11 +262,14 @@ namespace ShineWebMobileAPI.Controllers
                         {
                             int Ident = 0;
                             nTransrange = bl.BL_nValidation(dtDocIDs.Rows[nCount][0]);
-                            DataTable dtID = bl.BL_ExecuteParamSP(Companycode,"uspGetTransIdentforPrint", TransID, nTransrange,
-                                Branch, FromDate, ToDate);
+                            DataTable dtID = bl.BL_ExecuteParamSP(Companycode, "uspGetTransIdentforMobilePrint", TransID, DocValue);
                             if (dtID.Rows.Count > 0)
                             {
                                 Ident = bl.BL_nValidation(dtID.Rows[0][0]);
+                            }
+                            if(Ident == 0)
+                            {
+                                return Ok();
                             }
                             PrintBase Print = new PrintBase
                             {
@@ -268,6 +277,7 @@ namespace ShineWebMobileAPI.Controllers
                             };
                             bl.strDigits = strDigits;
                             Print.CurrentCompanycode = Companycode;
+                            Print.UserUPIID = UserUPI;
                             Print.GroupPDFPB(Companycode,TransID, Ident, ConfigID, (nCount + 1) == dtDocIDs.Rows.Count, bl.BL_nValidation(Copies), CT);
                             if ((nCount + 1) == dtDocIDs.Rows.Count)
                                 Outputfile = Print.GroupPDFoutputPath;
@@ -434,6 +444,52 @@ namespace ShineWebMobileAPI.Controllers
                 bl.BL_WriteErrorMsginLog(Companycode, "ViewMyDocGenerate", "ViewMyDocGenerate", ex.Message);
             }
             return null;
+        }
+        [HttpGet]
+        [Route("api/transactionprint/get")]
+        public IHttpActionResult GetTransPrintData(string Companycode,string UserID)
+        {
+            try
+            {
+                DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspManageTransactionPrint", 1, UserID);
+                return Ok(DDT);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(Companycode,"Printing", "transactionprint/get", ex.Message);
+            }
+            return Ok();
+        }
+        [HttpGet]
+        [Route("api/printing/documentvalidate")]
+        public IHttpActionResult validateQADocs(string Companycode, string TransID, string strDocID)
+        {
+            try
+            {
+                DataTable dtDoc = bl.BL_ExecuteParamSP(Companycode, "uspGetTransIdentforMobilePrint", TransID, strDocID);
+                List<SaveMessage> listProd = new List<SaveMessage>();
+                for (int i = 0; i < dtDoc.Rows.Count; i++)
+                {
+                    listProd.Add(new SaveMessage()
+                    {
+                        Message = "ID Fetched",
+                        MsgID = "0",
+                        ID = dtDoc.Rows[0]["ID"].ToString(),
+                    });
+                    return Ok(listProd);
+                }
+                listProd.Add(new SaveMessage()
+                {
+                    Message = "No document found for this Doc ID",
+                    MsgID = "1",
+                });
+                return Ok(listProd);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(Companycode, "Printing", "documentvalidate", ex.Message);
+            }
+            return Ok();
         }
     }
 }

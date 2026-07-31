@@ -72,5 +72,19 @@ namespace ShineWebMobileAPI.Controllers
             string dtjson = JsonConvert.SerializeObject(ds);
             return Ok(dtjson);
         }
+        [HttpGet]
+        [Route("api/vls/generatedata")]
+        public IHttpActionResult VLSgeneratedata(string CompanyCode, string BranchID, string SalesmanID)
+        {
+            DataTable DDT = bl.BL_ExecuteParamSP(CompanyCode, "uspMobileVLSReport", BranchID, SalesmanID);
+            return Ok(DDT);
+        }
+        [HttpGet]
+        [Route("api/spotsales/generatedata")]
+        public IHttpActionResult VLSgeneratedata(string CompanyCode,string Mode, string SalesmanID, string Date)
+        {
+            DataTable DDT = bl.BL_ExecuteParamSP(CompanyCode, "uspMobileSpotinvoicesreport", Mode, SalesmanID, Date);
+            return Ok(DDT);
+        }
     }
 }
