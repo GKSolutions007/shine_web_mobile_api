@@ -15,7 +15,7 @@ namespace ShineWebMobileAPI.Models
 
         public int CustomerID { get; set; }
         public int BranchID { get; set; }
-
+        public int SpotSalePriceMode { get; set; }
         public int UserID { get; set; }
         public int Status { get; set; }
 

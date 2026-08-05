@@ -49,12 +49,12 @@ namespace ShineWebMobileAPI.Controllers
         }
         [HttpGet]
         [Route("api/vls/documentdata")]
-        public IHttpActionResult GetData(string CompanyCode, string SalesmanID, string DocNo)
+        public IHttpActionResult GetData(string CompanyCode, string SalesmanID, string DocNo,string SpotSalePriceMode = "1")
         {
             try
             {
                 var Responsedata = new List<object>();
-                DataSet dt = bl.BL_ExecuteParamSPDataset(CompanyCode, "uspgetVLSData", 2, SalesmanID, DocNo);
+                DataSet dt = bl.BL_ExecuteParamSPDataset(CompanyCode, "uspgetVLSData", 2, SalesmanID, DocNo, SpotSalePriceMode);
                 DataTable dtHeader = dt.Tables[0];
                 if (dtHeader.Rows.Count > -10)
                 {
@@ -176,7 +176,7 @@ namespace ShineWebMobileAPI.Controllers
                     bl.bl_Transaction(vlsdata.CompanyCode, 1);
                     DataTable DDT = bl.bl_ManageTrans(vlsdata.CompanyCode, "uspSaveMobileVLSData", vlsdata.ID,
                             vlsdata.Status, vlsdata.CustomerID, vlsdata.SalesmanID, vlsdata.UserID, dtItemDetails,
-                            vlsdata.BranchID);
+                            vlsdata.BranchID,vlsdata.SpotSalePriceMode);
                     if (DDT.Columns.Count > 5)
                     {
                         #region GST Posting
