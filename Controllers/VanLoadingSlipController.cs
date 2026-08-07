@@ -203,6 +203,7 @@ namespace ShineWebMobileAPI.Controllers
                             {
                                 //if (bl.BL_dValidation(DDT.Rows[nCount]["Qty"]) > 0)
                                 //{
+                                int ItemSerial = bl.BL_nValidation(DDT.Rows[nCount]["Serial"]);
                                 nProdID = bl.BL_nValidation(DDT.Rows[nCount]["ProdId"]);
                                 nTaxID = bl.BL_nValidation(DDT.Rows[nCount]["TaxID"]);
                                 nTaxTypeID =  bl.BL_nValidation(DDT.Rows[nCount]["TaxTypeID"]);
@@ -242,13 +243,14 @@ namespace ShineWebMobileAPI.Controllers
                                                 bl.BL_dValidation(DDTaxCompInfo.Rows[nTaxComp][2]) * dQtys;//dQtnGrossAmount
                                         dr["GrossAmount"] = newgrossamt;// dQtnGrossAmount;
                                                                         //dr["TransSerial"] = nTranSerial;
-                                        dr["TransSerial"] = (nCount + 1);
+                                        dr["TransSerial"] = ItemSerial == 0 ? nTranSerial : ItemSerial;// nTranSerial;
                                         dr["SerialNo"] = SRSerial;
                                         dtGSTInfo.Rows.Add(dr);
                                         SRSerial++;
                                     }
                                     nTranSerial++;
                                 }
+                                
                                 //}
                             }
                             if (dtGSTInfo.Rows.Count > 0)
