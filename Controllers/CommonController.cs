@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using System.Web.Security;
 
 namespace ShineWebMobileAPI.Controllers
 {
@@ -60,6 +61,52 @@ namespace ShineWebMobileAPI.Controllers
             catch (Exception ex)
             {
                 bl.BL_WriteErrorMsginLog(CompanyCode,"Common", "BranchMapping/getByRole", ex.Message);
+            }
+            return Ok();
+        }
+        [Route("api/partyinfos")]
+        public IHttpActionResult Getpartyinfo(string CompanyCode, string PartyID,string BranchID)
+        {
+            try
+            {
+                var objNames = new List<object>();
+                DataSet DDT = bl.BL_ExecuteParamSPDataset(CompanyCode, "uspPartyInfo", PartyID, BranchID);
+                if (DDT.Tables.Count > 0)
+                {
+                    DataTable dtCustomerActivity = DDT.Tables[0];
+                    DataTable dtCustomer = DDT.Tables[1];
+                    DataTable dtCustomerImages = DDT.Tables[2];
+                    string customerjson = JsonConvert.SerializeObject(DDT);
+                    var customerimagedata = new List<object>();
+                    foreach (DataRow dr in dtCustomerImages.Rows)
+                    {
+                        string imgdata = null;
+                        if (!string.IsNullOrEmpty(dr["Imagedata"].ToString()))
+                        {
+                            byte[] photoBytes = (byte[])dr["Imagedata"];
+                            imgdata = Convert.ToBase64String(photoBytes);
+                        }
+                        customerimagedata.Add(new
+                        {
+                            ImageData = imgdata
+                        });
+                    }
+                    objNames.Add(new
+                    {
+                        Mode = 0,
+                        Message = "Customer Data fetched",
+                        CustomerActivity = dtCustomerActivity,
+                        Customerdata = dtCustomer,
+                        Imagedata = customerimagedata
+                    });
+
+                    return Ok(objNames);
+                }
+                return Ok(DDT);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(CompanyCode, "Common", "partyinfos", ex.Message);
             }
             return Ok();
         }
