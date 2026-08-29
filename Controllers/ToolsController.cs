@@ -69,5 +69,43 @@ namespace ShineWebMobileAPI.Controllers
             }
             return Ok();
         }
-    }
+
+        [HttpGet]
+        [Route("api/customerlocation")]
+        public IHttpActionResult Getcustomerlocation(string CompanyCode, string Type, string BeatID = "0", string SalesmanID = "0", 
+            string Customer = "0",string Latitude = "",string Longitude="")
+        {
+            DataTable dtLocations = bl.BL_ExecuteParamSP(CompanyCode, "uspCustomerLocations", Type, BeatID, SalesmanID, Customer, Latitude, Longitude);
+            if(dtLocations.Rows.Count > 0)
+            {
+                var Customerdata = new List<object>();
+                for (int i = 0; i < dtLocations.Rows.Count; i++)
+                {
+                    string imgdata = null;
+                    if (!string.IsNullOrEmpty(dtLocations.Rows[i]["Imagedata"].ToString()))
+                    {
+                        byte[] photoBytes = (byte[])dtLocations.Rows[i]["Imagedata"];
+                        imgdata = "data:image/jpeg;base64," + Convert.ToBase64String(photoBytes);
+                        //ProdID ProductName UomQty UomPrice    InclPrice MRP AdjustQty AvlVLS  Imagedata
+                    }
+                    Customerdata.Add(new
+                    {
+                        ID = dtLocations.Rows[i]["ID"],
+                        Code = dtLocations.Rows[i]["Code"],
+                        Name = dtLocations.Rows[i]["Name"],
+                        Mob1 = dtLocations.Rows[i]["Mob1"],
+                        Latitude = dtLocations.Rows[i]["Latitude"],
+                        Longtitude = dtLocations.Rows[i]["Longtitude"],
+                        Distance = dtLocations.Rows[i]["Distance"],
+                        Balance = dtLocations.Rows[i]["Balance"],
+                        InvCount = dtLocations.Rows[i]["InvCount"],
+                        Aging = dtLocations.Rows[i]["Aging"],
+                        Imagedata = imgdata
+                    });
+                }
+                return Ok(Customerdata);
+            }
+            return Ok();
+        }
+        }
 }

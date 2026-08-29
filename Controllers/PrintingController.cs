@@ -452,11 +452,32 @@ namespace ShineWebMobileAPI.Controllers
             try
             {
                 DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspManageTransactionPrint", 1, UserID);
-                return Ok(DDT);
+                DDT.TableName = "Transactions";
+                DataTable DDTusers = bl.BL_ExecuteParamSP(Companycode, "uspManageTransactionPrint", 2, UserID);
+                DDTusers.TableName = "Users";
+                DataSet dt = new DataSet();
+                dt.Tables.Add(DDT);
+                dt.Tables.Add(DDTusers);
+                return Ok(dt);
             }
             catch (Exception ex)
             {
                 bl.BL_WriteErrorMsginLog(Companycode,"Printing", "transactionprint/get", ex.Message);
+            }
+            return Ok();
+        }
+        [HttpGet]
+        [Route("api/transactionprint/documentfilter")]
+        public IHttpActionResult GetdocumentfilterData(string Companycode, string TransID, string UserID,string FromDate,string ToDate)
+        {
+            try
+            {
+                DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspMobileTransPrintFilter", TransID, UserID, FromDate, ToDate);
+                return Ok(DDT);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(Companycode, "Printing", "transactionprint/documentfilter", ex.Message);
             }
             return Ok();
         }
