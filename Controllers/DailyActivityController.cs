@@ -1107,5 +1107,24 @@ namespace ShineWebMobileAPI.Controllers
             }
             return Ok();
         }
+
+        [HttpGet]
+        [Route("api/salestransdocuments")]
+        public IHttpActionResult salestransdocuments(string CompanyCode, string TransID, string UserID, string FromDate,
+             string ToDate, string ShowAll, string TypeID)
+        {
+            try
+            {
+                DataTable dtMSTdetail = bl.BL_ExecuteParamSP(CompanyCode, "uspMobileDACollSRFilterdata", TransID, UserID, FromDate,
+                    ToDate, ShowAll, TypeID);
+                return Ok(dtMSTdetail);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(CompanyCode, "Common", "masterlist", ex.Message); return Ok();
+
+            }
+            return Ok();
+        }
     }
 }

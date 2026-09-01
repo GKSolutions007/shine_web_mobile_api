@@ -42,6 +42,22 @@ namespace ShineWebMobileAPI.Controllers
             });
             return Ok(DocInfo);
         }
+        [HttpGet]
+        [Route("api/masterlist")]
+        public IHttpActionResult MasterFielddata(string CompanyCode, string FormName, string SubField, string Value)
+        {
+            try
+            {
+                DataTable dtMSTdetail = bl.BL_ExecuteParamSP(CompanyCode,"uspgetMasterlists", FormName, SubField, Value);
+                return Ok(dtMSTdetail);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(CompanyCode, "Common", "masterlist", ex.Message); return Ok();
+
+            }
+            return Ok();
+        }
         [Route("api/colorsettings/get")]
         public IHttpActionResult Getcolors(string CompanyCode, string ThemeID)
         {
