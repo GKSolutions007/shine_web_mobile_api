@@ -235,6 +235,8 @@
     <Compile Include="Printing\PrintBase.cs" />
     <Compile Include="Printing\PrintConvert.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utility\PasswordHasher.cs" />
+    <Compile Include="Utility\SecretConfig.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Areas\HelpPage\HelpPage.css" />

@@ -9,3 +9,14 @@ D:\2025\ShineWebMobileAPI\Shinewebprint\obj\Release\Shinewebprint.csproj.CoreCom
 D:\2025\ShineWebMobileAPI\Shinewebprint\obj\Release\Shineweb.B6D469D3.Up2Date
 D:\2025\ShineWebMobileAPI\Shinewebprint\obj\Release\Shinewebprint.dll
 D:\2025\ShineWebMobileAPI\Shinewebprint\obj\Release\Shinewebprint.pdb
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\bin\Release\Shinewebprint.dll
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\bin\Release\Shinewebprint.pdb
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\bin\Release\BouncyCastle.Cryptography.dll
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\bin\Release\itextsharp.dll
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\bin\Release\BouncyCastle.Cryptography.xml
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\bin\Release\itextsharp.xml
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\obj\Release\Shinewebprint.csproj.AssemblyReference.cache
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\obj\Release\Shinewebprint.csproj.CoreCompileInputs.cache
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\obj\Release\Shineweb.B6D469D3.Up2Date
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\obj\Release\Shinewebprint.dll
+D:\Mobile 2026\api\shine_web_mobile_api\Shinewebprint\obj\Release\Shinewebprint.pdb

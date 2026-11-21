@@ -1,15 +1,18 @@
 ﻿using Newtonsoft.Json;
 using ShineWebMobileAPI.BuisnessLayer;
 using ShineWebMobileAPI.Models;
+using ShineWebMobileAPI.Utility;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Cors;
+using static System.Net.WebRequestMethods;
 
 namespace ShineWebMobileAPI.Controllers
 {
@@ -17,13 +20,78 @@ namespace ShineWebMobileAPI.Controllers
     public class LoginController : ApiController
     {
         clsBusinessLayer bl = new clsBusinessLayer();
+        // Lazy-evaluated: decryption only runs in actions that open a raw SqlConnection.
+        private string _connectionString;
+        private string _companycode { get; set; }
+        private string connectionString
+        {
+            get
+            {
+                if (_connectionString == null)
+                    _connectionString = SecretConfig.ConnectionString(_companycode);
+                return _connectionString;
+            }
+        }
+        private DataTable dtUserInfo { get; set; }
+        // Hash used when the user name does not exist, so a wrong user name takes as long as a
+        // wrong password (otherwise response time reveals which user names exist).
+        private static readonly Lazy<string> _dummyHash = new Lazy<string>(() => PasswordHasher.Hash(Guid.NewGuid().ToString()));
+
+        /// <summary>
+        /// Verifies a login password against tblUsers. Accepts PBKDF2 hashes and, for users not yet
+        /// migrated, the legacy encrypted value; a legacy (or weaker) value is replaced with a new
+        /// hash on success. Returns the stored value to pass to uspManageUsers mode 6, or null.
+        /// </summary>
+        private string VerifyLoginPassword(string Companycode,string userName, string password)
+        {
+            _companycode = Companycode;
+            DataTable dt = bl.BL_ExecuteParamSP(Companycode,"uspGetUserCredential", userName);
+            bool unused;
+            if (dt.Rows.Count == 0)
+            {
+                PasswordHasher.Verify(password, _dummyHash.Value, out unused);
+                return null;
+            }
+            else
+            {
+                dtUserInfo = dt;
+            }
+            foreach (DataRow row in dt.Rows)
+            {
+                string stored = row["Password"].ToString();
+                bool needsRehash;
+                if (!PasswordHasher.Verify(password, stored, out needsRehash)) continue;
+                if (needsRehash)
+                {
+                    string newHash = PasswordHasher.Hash(password);
+                    try
+                    {
+                        DataTable upd = bl.BL_ExecuteParamSP(Companycode, "uspSetUserPasswordHash", row["ID"], stored, newHash);
+                        if (upd.Rows.Count > 0 && Convert.ToInt32(upd.Rows[0][0]) == 1)
+                            stored = newHash;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Login still succeeds with the legacy value; the upgrade is retried next time.
+                        bl.BL_WriteErrorMsginLog(Companycode, "Login", "password hash upgrade", ex.Message);
+                    }
+                }
+                return stored;
+            }
+            return null;
+        }
         [HttpGet]
         [Route("api/login/get")]
         public IHttpActionResult GetloginData(string Companycode,string UserName, string Password)
         {
+            _companycode = Companycode;
             if (!string.IsNullOrEmpty(UserName) && !string.IsNullOrEmpty(Password))
             {
-                DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspManageUsers", 6, 0, UserName, clsEncryptDecrypt.Encrypt(Password));
+                //DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspManageUsers", 6, 0, UserName, clsEncryptDecrypt.Encrypt(Password));
+                string storedPassword = VerifyLoginPassword(Companycode, UserName, Password);
+                DataTable DDT = storedPassword == null
+                    ? new DataTable()
+                    : bl.BL_ExecuteParamSP(Companycode, "uspManageUsers", 6, 0, UserName, storedPassword);
                 List<Users> list = new List<Users>();
                 if (DDT.Rows.Count > 0)
                 {
@@ -75,33 +143,46 @@ namespace ShineWebMobileAPI.Controllers
                     string CompCode = dtCompData.Rows[0]["CompanyCode"].ToString();
                     string CCMail = dtCompData.Rows[0]["CCEmail"].ToString();
                     Random random = new Random();
-                    int OTP = random.Next(100000, 999999);
-                    bool Issend = bl.SendEmail("Reset Password OTP", "Hii "+ LoginUserName + ", OTP for Reset password is <b>" + OTP.ToString() + "</b>", Email, ToEmail);
-                    if (Issend)
+                    string OTP = NewOtp();// random.Next(100000, 999999);
+                    DataTable dtOtp = bl.BL_ExecuteParamSP(Companycode, "uspPasswordResetOtp", 1, UserName, Email, PasswordHasher.Hash(OTP));
+                    if (dtOtp.Rows.Count > 0 && Convert.ToInt32(dtOtp.Rows[0]["Status"]) == 1)
                     {
-                        int OTPID = 0;
-                        DataTable dtOTP = bl.BL_ExecuteParamSP(Companycode,"uspManageOTP", 1, 0, "MobileResetPassword", OTP, UserID);
-                        if (dtOTP.Rows.Count > 0)
+                        bool Issend = bl.SendEmail("Reset Password OTP", "Hii " + LoginUserName + ", OTP for Reset password is <b>" + OTP + "</b>", Email, ToEmail);
+                        if (Issend)
                         {
-                            OTPID = Convert.ToInt32(dtOTP.Rows[0][0].ToString());
-                        }
+                            int OTPID = 0;
+                            DataTable dtOTP = bl.BL_ExecuteParamSP(Companycode, "uspManageOTP", 1, 0, "MobileResetPassword", OTP, UserID);
+                            if (dtOTP.Rows.Count > 0)
+                            {
+                                OTPID = Convert.ToInt32(dtOTP.Rows[0][0].ToString());
+                            }
 
-                        list.Add(new
+                            list.Add(new
+                            {
+                                Mode = "2",
+                                ID = OTPID.ToString(),// DDT.Rows[0]["ID"].ToString(),
+                                UserID = UserID,
+                                EMailID = Email,
+                                ResponseMessage = "OTP Send to your Email ID"
+                            });
+                            return Ok(list);
+                        }
+                        else
                         {
-                            Mode = "2",
-                            ID = OTPID.ToString(),// DDT.Rows[0]["ID"].ToString(),
-                            UserID = UserID,
-                            EMailID = Email,
-                            ResponseMessage = "OTP Send to your Email ID"
-                        });
-                        return Ok(list);
+                            list.Add(new
+                            {
+                                Mode = "3",
+                                ResponseMessage = "OTP E-Mail is not sending. Please check E-mail ID and try again"
+                            });
+                            return Ok(list);
+                        }
                     }
-                    else
+                    else if (dtOtp.Rows.Count > 0 && Convert.ToInt32(dtOtp.Rows[0]["Status"]) == -1)
                     {
                         list.Add(new
                         {
                             Mode = "3",
-                            ResponseMessage = "OTP E-Mail is not sending. Please check E-mail ID and try again"
+                            ResponseMessage = "OTP request limit exceeded. You have reached the maximum number of OTP requests allowed per hour. Please try again later."
                         });
                         return Ok(list);
                     }
@@ -123,23 +204,28 @@ namespace ShineWebMobileAPI.Controllers
             }
             return Ok();
         }
-
+        private string NewOtp()
+        {
+            byte[] b = new byte[4];
+            using (var rng = RandomNumberGenerator.Create())
+                rng.GetBytes(b);
+            return (100000 + (BitConverter.ToUInt32(b, 0) % 900000)).ToString();
+        }
 
         [HttpGet]
-        [Route("api/otpverify")]
+        [Route("api/otpverify_old")]
         public IHttpActionResult loginotpverify(string Companycode, string OTPID, string OTP)
         {
             try
             {
                 var list = new List<object>();
                 DataTable dtOTP = bl.BL_ExecuteParamSP(Companycode,"uspManageOTP", 2, OTPID, null, OTP);
-                if (dtOTP.Rows.Count > 0)
+                if (dtOTP.Columns.Count > 1)
                 {
-                    string UserID = dtOTP.Rows[0]["UserID"].ToString();
                     list.Add(new
                     {
                         MsgID = "1",
-                        ID = UserID.ToString(),
+                        ID = dtOTP.Rows[0]["UserID"].ToString(),
                         Message = "OTP Validation success",
                     });
                     return Ok(list);
@@ -149,7 +235,7 @@ namespace ShineWebMobileAPI.Controllers
                     list.Add(new
                     {
                         MsgID = "2",
-                        Message = "Invalid OTP"
+                        Message = dtOTP.Rows[0][0].ToString()
                     });
                 }
                 return Ok(list);
@@ -161,23 +247,63 @@ namespace ShineWebMobileAPI.Controllers
             return Ok();
         }
         [HttpGet]
+        [Route("api/otpverify")]
+        public IHttpActionResult VerifyFGOtp(string Companycode, string UserName, string Email, string OTP)
+        {
+            var fail = new List<SaveMessage> { new SaveMessage { MsgID = "1", Message = "OTP Mismatched" } };
+            try
+            {
+                if (string.IsNullOrWhiteSpace(UserName) || string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(OTP))
+                    return Ok(fail);
+                DataTable dt = bl.BL_ExecuteParamSP(Companycode, "uspPasswordResetOtp", 2, UserName, Email);
+                if (dt.Rows.Count == 0)
+                    return Ok(new List<SaveMessage> { new SaveMessage { MsgID = "2", Message = "OTP expired. Please request a new OTP." } });
+                object otpId = dt.Rows[0]["OtpID"];
+                bool unused;
+                if (!PasswordHasher.Verify(OTP.Trim(), dt.Rows[0]["OtpHash"].ToString(), out unused))
+                {
+                    bl.BL_ExecuteParamSP(Companycode, "uspPasswordResetOtp", 3, null, null, null, otpId);   // counts the wrong attempt
+                    return Ok(fail);
+                }
+                DataTable ok = bl.BL_ExecuteParamSP(Companycode, "uspPasswordResetOtp", 4, null, null, null, otpId);
+                if (ok.Rows.Count > 0 && Convert.ToInt32(ok.Rows[0][0]) == 1)
+                    return Ok(new List<SaveMessage> { new SaveMessage { MsgID = "0", Message = "OTP verified" } });
+                return Ok(fail);
+            }
+            catch (Exception ex)
+            {
+                bl.BL_WriteErrorMsginLog(Companycode, "Login", "otpverify", ex.Message);
+            }
+            return Ok(fail);
+        }
+        [HttpGet]
         [Route("api/forgotpassword/setpassword")]
         public IHttpActionResult GetFGsetpwd(string Companycode, string UserName, string Email, string Password)
         {
             try
             {
 
-                DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspManageUsers", 9, 0, UserName, clsEncryptDecrypt.Encrypt(Password),
+                //DataTable DDT = bl.BL_ExecuteParamSP(Companycode, "uspManageUsers", 9, 0, UserName, clsEncryptDecrypt.Encrypt(Password),
+                //    null, Email);
+                //List<SaveMessage> list = new List<SaveMessage>();
+                ////if (DDT.Rows.Count > 0)
+                //{
+                //    list.Add(new SaveMessage
+                //    {
+                //        MsgID = "0",
+                //        Message = "Password chaged successfully"
+                //    });
+                //}
+                //return Ok(list);
+                if (string.IsNullOrEmpty(Password))
+                    return Ok(new List<SaveMessage> { new SaveMessage { MsgID = "1", Message = "Password should not be empty" } });
+                DataTable DDT = bl.BL_ExecuteParamSP(Companycode,"uspManageUsers", 9, 0, UserName, PasswordHasher.Hash(Password),
                     null, Email);
+                bool updated = DDT.Rows.Count > 0 && DDT.Columns.Contains("Updated") && Convert.ToInt32(DDT.Rows[0]["Updated"]) == 1;
                 List<SaveMessage> list = new List<SaveMessage>();
-                //if (DDT.Rows.Count > 0)
-                {
-                    list.Add(new SaveMessage
-                    {
-                        MsgID = "0",
-                        Message = "Password chaged successfully"
-                    });
-                }
+                list.Add(updated
+                    ? new SaveMessage { MsgID = "0", Message = "Password chaged successfully" }
+                    : new SaveMessage { MsgID = "1", Message = "OTP verification expired. Please request a new OTP." });
                 return Ok(list);
             }
             catch (Exception ex)

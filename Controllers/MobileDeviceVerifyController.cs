@@ -7,9 +7,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using System.Web.Http.Cors;
 
 namespace ShineWebMobileAPI.Controllers
 {
+    [EnableCors(origins: "*", headers: "*", methods: "*")]
     public class MobileDeviceVerifyController : ApiController
     {
         clsBusinessLayer bl = new clsBusinessLayer();
@@ -56,10 +58,19 @@ namespace ShineWebMobileAPI.Controllers
             DataTable dtReportPermission = bl.BL_ExecuteParamSP(Companycode, "uspReportPermission", 2, RID, UID, 1);
             dtReportPermission.TableName = "UserRepMenus";
             ds.Tables.Add(dtReportPermission);
+            
             string dtjson = JsonConvert.SerializeObject(ds);
             return Ok(dtjson);
         }
-        
+        [HttpGet]
+        [Route("api/mobiledevicelogin/themedata")]
+        public IHttpActionResult Getthemedata(string Companycode, string ThemeID)
+        {
+            DataTable dt = bl.BL_ExecuteParamSP(Companycode, "uspManageColorSettings",1, ThemeID);
+            dt.TableName = "Themedata";
+            string dtjson = JsonConvert.SerializeObject(dt);
+            return Ok(dtjson);
+        }
         [HttpGet]
         [Route("api/mobiledevicelogin/savelogininfo")]
         public IHttpActionResult savelogininfo(string Companycode, int LoginMode, string IpAddress, string DeviceName, string TokenValue, int SesStatus, int UserID = 0, string DBName = "", int DeviceID = 0)

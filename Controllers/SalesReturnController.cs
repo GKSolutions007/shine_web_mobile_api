@@ -151,14 +151,27 @@ namespace ShineWebMobileAPI.Controllers
                                            bl.BL_dValidation(listTrans.TrdDisc), bl.BL_nValidation(listTrans.CurrentStatus), 0, listTrans.Narration, bl.BL_nValidation(listTrans.UserID));
                 if (dtResult.Rows.Count > 0)
                 {
-                    bl.bl_Transaction(listTrans.CompanyCode, 2);
-                    int nBillScopeID = bl.BL_nValidation(dtResult.Rows[0][0]);
-                    list.Add(new SaveMessage()
+                    if (dtResult.Columns.Count == 1)
                     {
-                        ID = nBillScopeID.ToString(),
-                        MsgID = "0",
-                        Message = "Saved Successfully"
-                    });
+                        bl.bl_Transaction(listTrans.CompanyCode, 2);
+                        int nBillScopeID = bl.BL_nValidation(dtResult.Rows[0][0]);
+                        list.Add(new SaveMessage()
+                        {
+                            ID = nBillScopeID.ToString(),
+                            MsgID = "0",
+                            Message = "Saved Successfully"
+                        });
+                    }
+                    else
+                    {
+                        bl.bl_Transaction(listTrans.CompanyCode, 3);                        
+                        list.Add(new SaveMessage()
+                        {
+                            ID = "0",
+                            MsgID = "1",
+                            Message = dtResult.Rows[0][0].ToString()
+                        });
+                    }
                 }
                 else
                 {
